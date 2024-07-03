@@ -2,7 +2,7 @@ const Joi = require("joi");
 const db = require("../db_config");
 const dotenv = require("dotenv").config();
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs"); // added bcryptjs for password hashing
+const bcrypt = require("bcryptjs");
 
 const register = async (req, res) => {
   try {
@@ -13,6 +13,7 @@ const register = async (req, res) => {
         .email({ tlds: { allow: ["com", "net", "org", "edu", "gov", "ru"] } })
         .max(255)
         .required(),
+      admin: Joi.string().valid("true", "false").required(),
     });
 
     const { error, value } = schema.validate(req.body);
@@ -23,7 +24,7 @@ const register = async (req, res) => {
         .json({ error: error.details.map((detail) => detail.message) });
     }
 
-    const { username, password, email } = value;
+    const { username, password, email, admin } = value;
 
     const existingUserByEmail = await db.query(
       "SELECT * FROM meetup_api.user_info WHERE email = $1",
@@ -48,8 +49,8 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.query(
-      "INSERT INTO meetup_api.user_info (username, password, email) VALUES ($1, $2, $3)",
-      [username, hashedPassword, email]
+      "INSERT INTO meetup_api.user_info (username, password, email, roles) VALUES ($1, $2, $3, $4)",
+      [username, hashedPassword, email, admin == "true" ? "Admin" : null]
     );
 
     res.status(201).json({ message: "Пользователь успешно зарегистрирован" });
@@ -81,7 +82,7 @@ const login = async (req, res) => {
       return res.status(401).json({ error: "Неверный логин или пароль" });
     }
 
-    // Генерируем access и refresh токены
+    // Генерация access и refresh токенов
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
@@ -107,22 +108,41 @@ const generateAccessToken = (user) => {
       userId: user.user_id,
       username: user.username,
       email: user.email,
+      role: user.roles,
     },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: process.env.ACCESS_TOKEN_EXPIRATION }
   );
 };
 
-const generateRefreshToken = (user) => {
+const generateRefreshToken = (user, role) => {
   return jwt.sign(
     {
       userId: user.user_id,
       username: user.username,
       email: user.email,
+      role: user.roles,
     },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: process.env.REFRESH_TOKEN_EXPIRATION }
   );
 };
 
-module.exports = { register, login };
+const meetupList = async (req, res) => {
+  try {
+    const { rows } = await db.query("SELECT * FROM meetup_api.meetup_info");
+
+    res.send(
+      `Meet up list:\n\n${rows
+        .map((elem) => {
+          return `ID:${elem.meetup_id}\nName:${elem.name}\nTags:${elem.tags}\nDate:${elem.date}\nLocation:${elem.location}\n\n`;
+        })
+        .join("")}`
+    );
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Ошибка при поиске доступных митапов.");
+  }
+};
+
+module.exports = { register, login, meetupList };
