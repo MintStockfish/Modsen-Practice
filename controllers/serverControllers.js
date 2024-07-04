@@ -73,13 +73,13 @@ const login = async (req, res) => {
     const user = result.rows[0];
 
     if (!user) {
-      return res.status(401).json({ error: "Неверный логин или пароль" });
+      return res.status(401).send("Неверный логин или пароль.");
     }
 
     const isValid = await bcrypt.compare(password, user.password);
 
     if (!isValid) {
-      return res.status(401).json({ error: "Неверный логин или пароль" });
+      return res.status(401).send("Неверный логин или пароль.");
     }
 
     // Генерация access и refresh токенов
@@ -91,7 +91,7 @@ const login = async (req, res) => {
       [refreshToken, user.user_id]
     );
 
-    res.json({
+    res.status(201).json({
       message: "Вы успешно авторизировались.",
       accessToken,
       refreshToken,

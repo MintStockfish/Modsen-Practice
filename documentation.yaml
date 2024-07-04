@@ -1,0 +1,167 @@
+openapi: 3.0.0
+info:
+  title: Митапы спецификация
+  version: 1.0.0
+servers:
+  - url: http://localhost:4111
+paths:
+  /meetupList:
+    get:
+      summary: Метод для получения списка митапов.
+      responses:
+        '200':
+          description: Успешный ответ со списком всех митапов.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meetups"
+          
+        'default':
+          description: Неудачные сценарии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /register:              
+    post:
+      summary: Регистрирование пользователя.
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema: 
+              $ref: "#/components/schemas/Register"
+      responses: 
+        '201':
+          description: Пользователь успешно зарегистрирован.
+        '400':
+          description: Пользователь с таким username или email уже зарегистрирован.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Пользователь с таким username или email уже существует.
+        'default':
+          description: Неудачные сценарии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /login:              
+    post:
+      summary: Авторизация пользователя.
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema: 
+              $ref: "#/components/schemas/Login"
+      responses: 
+        '201':
+          description: Пользователь успешно авторизован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginOutput"
+            
+        '400':
+          description: Пользователь с таким username или email уже зарегистрирован.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Пользователь с таким username или email уже существует.
+        '401':
+          description: Неверный логин или пароль.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Неверный логин или пароль.
+        'default':
+          description: Неудачные сценарии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"      
+          
+          
+components:
+  schemas:
+    Meetup:
+      type: object
+      properties:
+        meetup_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Сходка кулинаров Востока
+        tags:
+          type: string
+          example: кулинария, восточная кухня
+        date:
+          type: string
+          example: 21.12.2024, 15:20
+        location:
+          type: string
+          example: Бейкер-стрит, 221b
+    Meetups:
+      type: array
+      items:
+        $ref: "#/components/schemas/Meetup"
+    Register:
+      type: object
+      properties:
+        username:
+          type: string
+          example: Vitalya
+        password:
+          type: string
+          example: 12345pass
+        email:
+          type: string
+          example: vitalya@gmail.com
+        admin:
+          type: string
+          example: false
+    Login:
+      type: object
+      properties:
+        username:
+          type: string
+          example: Vitalya
+        password:
+          type: string
+          example: 12345pass
+    LoginOutput:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Вы успешно авторизировались.
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1IiwidXNlcm5hbWUiOiJLZXZpbjIiLCJlbWFpbCI6ImN1YmJsZTJAbWFpbC5ydSIsInJvbGUiOm51bGwsImlhdCI6MTcyMDA3ODQ2MCwiZXhwIjoxNzIwMDc5MzYwfQ.4k4F0UrqUTNwwT6q3w1_D13Ac8EXNeVXKQq1-Vytles
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1IiwidXNlcm5hbWUiOiJLZXZpbjIiLCJlbWFpbCI6ImN1YmJsZTJAbWFpbC5ydSIsInJvbGUiOm51bGwsImlhdCI6MTcyMDA3ODQ2MCwiZXhwIjoxNzIwNjgzMjYwfQ.HhMsAwNrmKf7FQhTvy11brIziQhNEM1FpHWwnJCuVuA
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+    ErrorReg:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Пользователь с таким именем или пароль уже существует.
+          
