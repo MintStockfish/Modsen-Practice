@@ -6,10 +6,18 @@ const {
   register,
   login,
   meetupList,
+  getMeetupById,
+  addMeetup,
+  updateMeetup,
+  deleteMeetup,
 } = require("../controllers/serverControllers");
 
 router.post("/register", register);
 router.post("/login", login);
 router.get("/meetupList", meetupList);
+router.get("/getMeetupById", getMeetupById);
+router.post("/addMeetup", addMeetup);
+router.put("/updateMeetup", updateMeetup);
+router.delete("/deleteMeetup", deleteMeetup);
 
 module.exports = router;
