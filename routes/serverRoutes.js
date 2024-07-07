@@ -3,8 +3,6 @@ const router = express.Router();
 const app = express();
 
 const {
-  register,
-  login,
   meetupList,
   getMeetupById,
   addMeetup,
@@ -12,16 +10,22 @@ const {
   deleteMeetup,
   filterByTags,
   sortByName,
-} = require("../controllers/serverControllers");
+} = require("../src/meetupControllers");
+
+const { register, login, assignAdmin } = require("../src/authControllers");
 
 router.post("/register", register);
 router.post("/login", login);
+
 router.get("/meetupList", meetupList);
 router.get("/getMeetupById", getMeetupById);
+router.get("/filterByTags", filterByTags);
+router.get("/sortByName", sortByName);
+
 router.post("/addMeetup", addMeetup);
 router.put("/updateMeetup", updateMeetup);
 router.delete("/deleteMeetup", deleteMeetup);
-router.get("/filterByTags", filterByTags);
-router.get("/sortByName", sortByName);
+
+router.post("/assignAdmin", assignAdmin);
 
 module.exports = router;
