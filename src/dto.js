@@ -7,7 +7,6 @@ const userSchema = Joi.object({
     .email({ tlds: { allow: ["com", "net", "org", "edu", "gov", "ru"] } })
     .max(255)
     .required(),
-  admin: Joi.string().valid("true", "false").required(),
 });
 
 const meetupSchema = Joi.object({

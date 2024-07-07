@@ -24,8 +24,8 @@ class User {
 
   static async createUser(username, password, email, role) {
     await db.query(
-      "INSERT INTO meetup_api.user_info (username, password, email, roles) VALUES ($1, $2, $3, $4)",
-      [username, password, email, role]
+      "INSERT INTO meetup_api.user_info (username, password, email) VALUES ($1, $2, $3)",
+      [username, password, email]
     );
   }
 

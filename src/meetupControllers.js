@@ -49,24 +49,16 @@ const meetupList = async (req, res) => {
   try {
     const { rows } = await MeetupService.getAllMeetups();
 
-    const pageSize = 5;
-    let pageNumber = 1;
-    let meetupOutput = "";
+    if (req.query.page && req.query.limit) {
+      const page = parseInt(req.query.page);
+      const limit = parseInt(req.query.limit);
+      const startIndex = (page - 1) * limit;
+      const endIndex = page * limit;
 
-    for (let i = 0; i < rows.length; i += pageSize) {
-      const page = rows.slice(i, i + pageSize);
-
-      meetupOutput += `Page ${pageNumber}:\n\n`;
-
-      for (const elem of page) {
-        meetupOutput += `ID: ${elem.meetup_id}\nName: ${elem.name}\nTags: ${elem.tags}\nDate: ${elem.date}\nLocation: ${elem.location}\nDescription: ${elem.description}\n\n`;
-      }
-
-      meetupOutput += "\n";
-      pageNumber++;
+      return res.status(200).json(rows.slice(startIndex, endIndex));
+    } else {
+      return res.status(200).json(rows);
     }
-
-    res.status(200).send(meetupOutput);
   } catch (error) {
     console.error(error);
     res.status(500).send("Ошибка при поиске доступных митапов.");
