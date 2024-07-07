@@ -1,7 +1,7 @@
 const dotenv = require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-
+const db = require("../db_config.js");
 
 const { userSchema } = require("./dto.js");
 
