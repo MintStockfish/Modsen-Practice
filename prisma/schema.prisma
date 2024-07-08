@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model meetup_info {
+  meetup_id   BigInt  @id @default(autoincrement())
+  name        String
+  tags        String
+  date        String
+  location    String
+  description String?
+}
+
+model user_info {
+  user_id       BigInt  @id @default(autoincrement())
+  username      String? @unique
+  email         String
+  password      String
+  refresh_token String?
+  roles         String?
+}

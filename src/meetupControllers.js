@@ -6,58 +6,81 @@ const {
   updateMeetupSchema,
 } = require("./dto.js");
 
+const { PrismaClient } = require("@prisma/client");
+const { json } = require("express");
+const prisma = new PrismaClient();
+
 class MeetupService {
   static async getAllMeetups() {
-    return db.query("SELECT * FROM meetup_api.meetup_info");
+    return prisma.meetup_info.findMany();
   }
 
   static async getMeetupsById(meetupId) {
-    return db.query(
-      "SELECT * FROM meetup_api.meetup_info WHERE meetup_id = $1",
-      [meetupId]
-    );
+    return prisma.meetup_info.findUnique({
+      where: {
+        meetup_id: meetupId,
+      },
+    });
   }
 
   static async getMeetupByName(name) {
-    return db.query("SELECT * FROM meetup_api.meetup_info WHERE name = $1", [
-      name,
-    ]);
+    return prisma.meetup_info.findMany({
+      where: {
+        name,
+      },
+    });
   }
 
   static async addMeetup(name, tags, date, location, description) {
-    return await db.query(
-      "INSERT INTO meetup_api.meetup_info (name, tags, date, location, description) VALUES ($1, $2, $3, $4, $5)",
-      [name, tags, date, location, description]
-    );
+    return prisma.meetup_info.create({
+      data: {
+        name,
+        tags,
+        date,
+        location,
+        description,
+      },
+    });
   }
 
   static async updateMeetup(name, tags, date, location, description, id) {
-    return db.query(
-      "UPDATE meetup_api.meetup_info SET name = $1, tags = $2, date = $3, location = $4, description = $5 WHERE meetup_id = $6",
-      [name, tags, date, location, description, id]
-    );
+    return prisma.meetup_info.update({
+      where: {
+        meetup_id: id,
+      },
+      data: {
+        name,
+        tags,
+        date,
+        location,
+        description,
+      },
+    });
   }
 
   static async deleteMeetup(id) {
-    return db.query("DELETE FROM meetup_api.meetup_info WHERE meetup_id = $1", [
-      id,
-    ]);
+    return prisma.meetup_info.delete({
+      where: {
+        meetup_id: id,
+      },
+    });
   }
 }
 
 const meetupList = async (req, res) => {
   try {
-    const { rows } = await MeetupService.getAllMeetups();
-
+    let meetups = await MeetupService.getAllMeetups();
+    meetups = meetups.map((obj) => {
+      return { ...obj, meetup_id: +obj.meetup_id.toString() };
+    });
     if (req.query.page && req.query.limit) {
       const page = parseInt(req.query.page);
       const limit = parseInt(req.query.limit);
       const startIndex = (page - 1) * limit;
       const endIndex = page * limit;
-
-      return res.status(200).json(rows.slice(startIndex, endIndex));
+      return res.status(200).json(meetups.slice(startIndex, endIndex));
     } else {
-      return res.status(200).json(rows);
+      return res.status(200).json(meetups);
     }
   } catch (error) {
     console.error(error);
@@ -70,10 +93,12 @@ const getMeetupById = async (req, res) => {
   const meetupId = BigInt(id);
 
   try {
-    const { rows } = await MeetupService.getMeetupsById(meetupId);
+    const meetup = await MeetupService.getMeetupsById(meetupId);
 
-    if (rows.length > 0) {
-      res.status(200).json(rows[0]);
+    if (meetup) {
+      res
+        .status(200)
+        .json({ ...meetup, meetup_id: +meetup.meetup_id.toString() });
     } else {
       res.status(404).send("Митап с данным id не существует.");
     }
@@ -99,10 +124,10 @@ const addMeetup = async (req, res) => {
 
     if (decoded.role === "Admin") {
       const existingMeetupByName = await MeetupService.getMeetupByName(name);
-      if (existingMeetupByName.rows.length > 0) {
+      if (existingMeetupByName[0]) {
         return res.status(400).send("Митап c таким name уже существует.");
       }
-      MeetupService.addMeetup(name, tags, date, location, description);
+      await MeetupService.addMeetup(name, tags, date, location, description);
 
       return res.status(200).send("Митап успешно создан!");
     } else {
@@ -134,14 +159,14 @@ const updateMeetup = async (req, res) => {
     if (decoded.role === "Admin") {
       const existingMeetup = await MeetupService.getMeetupsById(id);
 
-      if (existingMeetup.rows.length === 0) {
+      if (!existingMeetup) {
         return res.status(404).send("Митап не найден.");
       }
 
-      if ((await MeetupService.getMeetupByName(name)).rows.length > 0) {
+      if (await MeetupService.getMeetupByName(name)[0]) {
         return res
           .status(401)
-          .json("Похоже, митап с таким названием уже существует!");
+          .send("Похоже, митап с таким названием уже существует!");
       }
 
       await MeetupService.updateMeetup(
@@ -183,7 +208,7 @@ const deleteMeetup = async (req, res) => {
     if (decoded.role === "Admin") {
       const existingMeetup = await MeetupService.getMeetupsById(id);
 
-      if (existingMeetup.rows.length === 0) {
+      if (!existingMeetup) {
         return res.status(404).send("Митап не найден.");
       }
 
@@ -206,7 +231,7 @@ const deleteMeetup = async (req, res) => {
 const filterByTags = async (req, res) => {
   const { tags } = req.query;
 
-  const unfilteredRows = (await MeetupService.getAllMeetups()).rows;
+  const unfilteredRows = await MeetupService.getAllMeetups();
   const filteredRows = new Array();
 
   const setTags = new Set(tags.replace(/\s/g, "").split(","));
@@ -219,28 +244,51 @@ const filterByTags = async (req, res) => {
 
   return res.json(
     filteredRows.length > 0
-      ? filteredRows
+      ? filteredRows.map((obj) => {
+          return { ...obj, meetup_id: +obj.meetup_id.toString() };
+        })
       : "Похоже, митапы c данными тегами отсутсвуют."
   );
 };
 
 const sortByName = async (req, res) => {
-  const { sortByAlphabet, limit = 10, offset = 0 } = req.query;
+  const { sortByAlphabet, limit = 5, page = 1 } = req.query;
 
-  const query = `
-      SELECT *
-      FROM meetup_api.meetup_info
-      ORDER BY name ASC
-      LIMIT $1
-      OFFSET $2
-    `;
-
-  const sorted = await db.query(query, [limit, offset]);
+  const meetups = await MeetupService.getAllMeetups();
 
   if (sortByAlphabet === "1") {
-    return res.status(200).json(sorted.rows);
+    if (req.query.page && req.query.limit) {
+      const page = parseInt(req.query.page);
+      const limit = parseInt(req.query.limit);
+      const startIndex = (page - 1) * limit;
+      const endIndex = page * limit;
+
+      return res.status(200).json(
+        meetups
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .slice(startIndex, endIndex)
+          .map((obj) => {
+            return { ...obj, meetup_id: +obj.meetup_id.toString() };
+          })
+      );
+    } else {
+      return res.status(200).json(
+        meetups
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((obj) => {
+            return { ...obj, meetup_id: +obj.meetup_id.toString() };
+          })
+      );
+    }
   } else if (sortByAlphabet === "-1") {
-    return res.status(200).json(sorted.rows.reverse());
+    return res.status(200).json(
+      meetups
+        .sort((a, b) => b.name.localeCompare(a.name))
+        .slice(page, page + limit)
+        .map((obj) => {
+          return { ...obj, meetup_id: +obj.meetup_id.toString() };
+        })
+    );
   } else {
     return res.status(400).json({ error: "Некорретный выбор" });
   }

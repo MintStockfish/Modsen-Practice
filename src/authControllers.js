@@ -1,47 +1,82 @@
 const dotenv = require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const db = require("../db_config.js");
+
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
 const { userSchema } = require("./dto.js");
 
 class User {
   static async getUserByEmail(email) {
-    const result = await db.query(
-      "SELECT * FROM meetup_api.user_info WHERE email = $1",
-      [email]
-    );
-    return result.rows[0];
+    if (!email || typeof email !== "string") {
+      throw new Error("Invalid email argument");
+    }
+    return prisma.user_info.findUnique({
+      where: {
+        // Specify the unique field(s) to search for
+        email,
+      },
+    });
   }
 
   static async getUserByUsername(username) {
-    const result = await db.query(
-      "SELECT * FROM meetup_api.user_info WHERE username = $1",
-      [username]
-    );
-    return result.rows[0];
+    return prisma.user_info.findUnique({
+      where: {
+        username,
+      },
+    });
   }
 
   static async createUser(username, password, email, role) {
-    await db.query(
-      "INSERT INTO meetup_api.user_info (username, password, email) VALUES ($1, $2, $3)",
-      [username, password, email]
-    );
+    await prisma.user_info.create({
+      data: {
+        username: username,
+        password: password,
+        email: email,
+        roles: role,
+      },
+    });
   }
 
   static async updateRefreshToken(userId, refreshToken) {
-    await db.query(
-      "UPDATE meetup_api.user_info SET refresh_token = $1 WHERE user_id = $2",
-      [refreshToken, userId]
-    );
+    await prisma.user_info.update({
+      where: {
+        user_id: userId,
+      },
+      data: {
+        refresh_token: refreshToken,
+      },
+    });
   }
 
   static async assignAdminRole(username) {
-    const result = await db.query(
-      "UPDATE meetup_api.user_info SET roles = $1 WHERE username = $2",
-      ["Admin", username]
-    );
-    return result.rowCount;
+    try {
+      const user = await prisma.user_info.findMany({
+        where: {
+          username: username,
+        },
+      });
+
+      if (user[0]) {
+        const result = await prisma.user_info.update({
+          where: {
+            user_id: user[0].user_id,
+          },
+          data: {
+            roles: "Admin",
+          },
+        });
+        console.log(result);
+
+        return result ? 1 : 0;
+      } else {
+        return 0;
+      }
+    } catch (err) {
+      console.error(err);
+      return 0;
+    }
   }
 }
 
@@ -55,27 +90,23 @@ const register = async (req, res) => {
         .json({ error: error.details.map((detail) => detail.message) });
     }
 
-    const { username, password, email, admin } = value;
+    const { username, password, email } = value;
 
-    if (await User.getUserByEmail(email)) {
+    console.log(await User.getUserByEmail(email));
+    if (Boolean(await User.getUserByEmail(email))) {
       return res
         .status(400)
         .json({ error: "Пользователь c таким email уже существует" });
     }
 
-    if (await User.getUserByUsername(username)) {
+    if (Boolean(await User.getUserByUsername(username))) {
       return res
         .status(400)
         .json({ error: "Пользователь c таким username уже существует" });
     }
 
     const hashedPassword = await bcrypt.hash(password, +process.env.SALT);
-    await User.createUser(
-      username,
-      hashedPassword,
-      email,
-      admin == "true" ? "Admin" : null
-    );
+    await User.createUser(username, hashedPassword, email);
 
     res.status(201).json({ message: "Пользователь успешно зарегистрирован" });
   } catch (err) {
@@ -91,21 +122,22 @@ const login = async (req, res) => {
     const { username, password } = req.body;
 
     const user = await User.getUserByUsername(username);
+    console.log(user);
 
     if (!user) {
       return res.status(401).send("Неверный логин или пароль.");
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    const isValid = await bcrypt.compare(password, user[0].password);
 
     if (!isValid) {
       return res.status(401).send("Неверный логин или пароль.");
     }
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    const accessToken = generateAccessToken(user[0]);
+    const refreshToken = generateRefreshToken(user[0]);
 
-    await User.updateRefreshToken(user.user_id, refreshToken);
+    await User.updateRefreshToken(user[0].user_id, refreshToken);
 
     res.status(201).json({
       message: "Вы успешно авторизировались.",
@@ -148,7 +180,7 @@ const assignAdmin = async (req, res) => {
 const generateAccessToken = (user) => {
   return jwt.sign(
     {
-      userId: user.user_id,
+      userId: user.user_id.toString(),
       username: user.username,
       email: user.email,
       role: user.roles,
@@ -161,7 +193,7 @@ const generateAccessToken = (user) => {
 const generateRefreshToken = (user) => {
   return jwt.sign(
     {
-      userId: user.user_id,
+      userId: user.user_id.toString(),
       username: user.username,
       email: user.email,
       role: user.roles,
