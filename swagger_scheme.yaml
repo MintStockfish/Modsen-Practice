@@ -8,14 +8,26 @@ paths:
   /meetupList:
     get:
       summary: Метод для получения списка митапов.
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description:  Номер страницы.
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Количество митапов на страницу.
+
       responses:
-        "200":
+        '200':
           description: Успешный ответ со списком всех митапов.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Meetups"
-        "default":
+        'default':
           description: Неудачные сценарии.
           content:
             application/json:
@@ -31,16 +43,16 @@ paths:
             schema:
               $ref: "#/components/schemas/Register"
       responses:
-        "201":
+        '201':
           description: Пользователь успешно зарегистрирован.
-        "400":
+        '400':
           description: Пользователь с таким username или email уже зарегистрирован
           content:
             text/plain:
               schema:
                 type: string
                 example: Пользователь с таким username или email уже существует.
-        "default":
+        'default':
           description: Неудачные сценарии.
           content:
             application/json:
@@ -56,27 +68,50 @@ paths:
             schema:
               $ref: "#/components/schemas/Login"
       responses:
-        "201":
+        '201':
           description: Пользователь успешно авторизован
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/LoginOutput"
-        "401":
+        '401':
           description: Неверный логин или пароль.
           content:
             text/plain:
               schema:
                 type: string
                 example: Неверный логин или пароль.
-        "500":
+        '500':
           description: Ошибка во время авторизации.
           content:
             text/plain:
               schema:
                 type: string
                 example: Ошибка во время авторизации.
-        "default":
+        'default':
+          description: Неудачные сценарии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /assignAdmin:
+    post:
+      summary: Выдача роли админа.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/assignAdmin"
+      responses:
+        '200':
+          description: Роль успешно назначена.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Роль успешно назначена.
+        'default':
           description: Неудачные сценарии.
           content:
             application/json:
@@ -93,21 +128,21 @@ paths:
             type: string
             example: "2"
       responses:
-        "201":
+        '201':
           description: Митап успешно найден.
           content:
             text/plain:
               schema:
                 type: string
                 example: Объект найденного митапа.
-        "404":
+        '404':
           description: Митап с указанным ID не найден.
           content:
             text/plain:
               schema:
                 type: string
                 example: Митап с данным id не существует.
-        "default":
+        'default':
           description: Неудачные сценарии.
           content:
             application/json:
@@ -123,28 +158,28 @@ paths:
             schema:
               $ref: "#/components/schemas/AddMeetup"
       responses:
-        "200":
+        '200':
           description: Митап успешно создан.
           content:
             application/json:
               schema:
                 type: string
                 example: Митап успешно создан!
-        "401":
+        '401':
           description: Недействительный токен доступа.
           content:
             text/plain:
               schema:
                 type: string
                 example: Недействительный токен доступа.
-        "403":
+        '403':
           description: У вас нет прав, чтобы организовать митап. (Если role пользователя не Admin)
           content:
             text/plain:
               schema:
                 type: string
                 example: "У вас нет прав, чтобы организовать митап."
-        "500":
+        '500':
           description: Произошла ошибка при создании митапа.
           content:
             text/plain:
@@ -152,24 +187,25 @@ paths:
                 type: string
                 example: "Произошла ошибка при создании митапа."
 
+                
   /updateMeetup:
     put:
       summary: Обновление данных митапа.
       requestBody:
-        required: true
-        content:
+       required: true
+       content:
           application/json:
             schema:
               $ref: "#/components/schemas/UpdateMeetup"
       responses:
-        "200":
+        '200':
           description: Митап успешно обновлен.
           content:
             application/json:
               schema:
                 type: string
                 example: Митап успешно обновлен!
-        "400":
+        '400':
           description: Неверный запрос.
           content:
             application/json:
@@ -177,63 +213,60 @@ paths:
                 type: array
                 items:
                   type: string
-                  example:
-                    [
-                      '"id" must be a number',
-                      '"name" length must be at least 3 characters long',
-                    ]
-        "401":
+                  example: [ "\"id\" must be a number", "\"name\" length must be at least 3 characters long" ]
+        '401':
           description: Недействительный токен доступа.
           content:
             text/plain:
               schema:
                 type: string
                 example: Недействительный токен доступа.
-        "403":
+        '403':
           description: У вас нет прав, чтобы редактировать митап. (Если роль пользователя не Admin)
           content:
             text/plain:
               schema:
                 type: string
                 example: У вас нет прав, чтобы редактировать митап.
-        "404":
+        '404':
           description: Митап не найден.
           content:
             text/plain:
               schema:
                 type: string
                 example: Митап не найден.
-        "500":
+        '500':
           description: Произошла ошибка при обновлении митапа.
           content:
             text/plain:
               schema:
                 type: string
                 example: Произошла ошибка при обновлении митапа.
+  
 
   /deleteMeetup:
     delete:
       summary: Удаление митапа.
       parameters:
-        - in: query
-          name: id
-          schema:
-            type: integer
-            example: 1
-        - in: query
-          name: accessToken
-          schema:
-            type: string
-            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwidXNlcm5hbWUiOiJOaWNrIiwiZW1haWwiOiJ0ZXN0MkBnbWFpbC5jb20iLCJyb2xlIjoiQWRtaW4iLCJpYXQiOjE3MjAxMTA4MzUsImV4cCI6MTcyMDcxNTYzNX0.Bi8IT6evhJqgWbTSSEP2fOonW3i1feKcU17yGwQ3c3Q
+      - in: query
+        name: id
+        schema:
+          type: integer
+          example: 1
+      - in: query 
+        name: accessToken
+        schema:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwidXNlcm5hbWUiOiJOaWNrIiwiZW1haWwiOiJ0ZXN0MkBnbWFpbC5jb20iLCJyb2xlIjoiQWRtaW4iLCJpYXQiOjE3MjAxMTA4MzUsImV4cCI6MTcyMDcxNTYzNX0.Bi8IT6evhJqgWbTSSEP2fOonW3i1feKcU17yGwQ3c3Q
       responses:
-        "200":
+        '200':
           description: Митап успешно удален.
           content:
             application/json:
               schema:
                 type: string
                 example: Митап успешно удален!
-        "400":
+        '400':
           description: Неверный запрос.
           content:
             application/json:
@@ -241,40 +274,36 @@ paths:
                 type: array
                 items:
                   type: string
-                  example:
-                    [
-                      '"id" must be a number',
-                      '"accessToken" length must be at least 30 characters long',
-                    ]
-        "401":
+                  example: [ "\"id\" must be a number", "\"accessToken\" length must be at least 30 characters long" ]
+        '401':
           description: Недействительный токен доступа.
           content:
             text/plain:
               schema:
                 type: string
                 example: Недействительный токен доступа.
-        "403":
+        '403':
           description: У вас нет прав, чтобы удалять митап. (Если роль пользователя не Admin)
           content:
             text/plain:
               schema:
                 type: string
                 example: У вас нет прав, чтобы удалять митап.
-        "404":
+        '404':
           description: Митап не найден.
           content:
             text/plain:
               schema:
                 type: string
                 example: Митап не найден.
-        "500":
+        '500':
           description: Произошла ошибка при удалении митапа.
           content:
             text/plain:
               schema:
                 type: string
                 example: Произошла ошибка при удалении митапа.
-        "default":
+        'default':
           description: Неудачные сценарии.
           content:
             application/json:
@@ -290,7 +319,7 @@ paths:
             type: string
             example: кулинария, восточная кухня
       responses:
-        "200":
+        '200':
           description: Список отфильтрованных митапов.
           content:
             application/json:
@@ -298,21 +327,21 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Meetup"
-        "404":
+        '404':
           description: Митапы с указанными тегами не найдены.
           content:
             text/plain:
               schema:
                 type: string
                 example: Похоже, митапы c данными тегами отсутсвуют.
-        "500":
+        '500':
           description: Произошла ошибка при фильтрации митапов.
           content:
             text/plain:
               schema:
                 type: string
                 example: Произошла ошибка при фильтрации митапов.
-        "default":
+        'default':
           description: Неудачные сценарии.
           content:
             application/json:
@@ -328,8 +357,18 @@ paths:
             type: integer
             enum: [-1, 1]
             example: 1
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description:  Номер страницы.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Количество митапов на страницу.
       responses:
-        "200":
+        '200':
           description: Список митапов, отсортированных по имени.
           content:
             application/json:
@@ -337,19 +376,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Meetup"
-        "500":
+        '500':
           description: Произошла ошибка при сортировке митапов.
           content:
             text/plain:
               schema:
                 type: string
                 example: Произошла ошибка при сортировке митапов.
-        "default":
+        'default':
           description: Неудачные сценарии.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
 
 components:
   schemas:
@@ -390,9 +430,15 @@ components:
         email:
           type: string
           example: vitalya@gmail.com
-        admin:
+    assignAdmin:
+      type: object
+      properties:
+        username:
           type: string
-          example: "false"
+          example: Nick
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwidXNlcm5hbWUiOiJOaWNrIiwiZW1haWwiOiJ0ZXN0MkBnbWFpbC5jb20iLCJyb2xlIjoiQWRtaW4iLCJpYXQiOjE3MjA0MzUzMDUsImV4cCI6MTcyMDQzNjIwNX0.fk2fGFqzHFn3g2gHQ71wB5khoJ1Qknklb43F2AxEJBM
     Login:
       type: object
       properties:
@@ -465,7 +511,7 @@ components:
         accessToken:
           type: string
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwidXNlcm5hbWUiOiJOaWNrIiwiZW1haWwiOiJ0ZXN0MkBnbWFpbC5jb20iLCJyb2xlIjoiQWRtaW4iLCJpYXQiOjE3MjAxMTA4MzUsImV4cCI6MTcyMDcxNTYzNX0.Bi8IT6evhJqgWbTSSEP2fOonW3i1feKcU17yGwQ3c3Q
-
+    
     Error:
       type: object
       required:
@@ -483,4 +529,4 @@ components:
       properties:
         message:
           type: string
-          example: Пользователь с таким именем
+          example: Пользователь с таким именем уже сущевствует!
