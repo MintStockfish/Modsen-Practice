@@ -43,6 +43,14 @@ class MeetupService {
       id,
     ]);
   }
+
+  static async sortMeetups() {
+    return db.query(`
+      SELECT *
+      FROM meetup_api.meetup_info
+      ORDER BY name ASC
+    `);
+  }
 }
 
 const meetupList = async (req, res) => {
@@ -225,17 +233,26 @@ const filterByTags = async (req, res) => {
 };
 
 const sortByName = async (req, res) => {
-  const { sortByAlphabet, limit = 10, offset = 0 } = req.query;
+  const { sortByAlphabet } = req.query;
 
-  const query = `
-      SELECT *
-      FROM meetup_api.meetup_info
-      ORDER BY name ASC
-      LIMIT $1
-      OFFSET $2
-    `;
+  if (req.query.page && req.query.limit) {
+    var page = parseInt(req.query.page);
+    var limit = parseInt(req.query.limit);
+    var startIndex = (page - 1) * limit;
+    var endIndex = page * limit;
 
-  const sorted = await db.query(query, [limit, offset]);
+    const { rows } = await MeetupService.sortMeetups();
+
+    if (sortByAlphabet === "1") {
+      return res.status(200).json(rows.slice(startIndex, endIndex));
+    } else if (sortByAlphabet === "-1") {
+      return res
+        .status(200)
+        .json(rows.rows.slice(startIndex, endIndex).reverse());
+    } else {
+      return res.status(400).json({ error: "Некорретный выбор" });
+    }
+  }
 
   if (sortByAlphabet === "1") {
     return res.status(200).json(sorted.rows);
