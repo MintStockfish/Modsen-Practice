@@ -12,9 +12,8 @@ class User {
     if (!email || typeof email !== "string") {
       throw new Error("Invalid email argument");
     }
-    return prisma.user_info.findUnique({
+    return prisma.user_info.findFirst({
       where: {
-        // Specify the unique field(s) to search for
         email,
       },
     });
@@ -92,7 +91,6 @@ const register = async (req, res) => {
 
     const { username, password, email } = value;
 
-    console.log(await User.getUserByEmail(email));
     if (Boolean(await User.getUserByEmail(email))) {
       return res
         .status(400)
@@ -128,16 +126,16 @@ const login = async (req, res) => {
       return res.status(401).send("Неверный логин или пароль.");
     }
 
-    const isValid = await bcrypt.compare(password, user[0].password);
+    const isValid = await bcrypt.compare(password, user.password);
 
     if (!isValid) {
       return res.status(401).send("Неверный логин или пароль.");
     }
 
-    const accessToken = generateAccessToken(user[0]);
-    const refreshToken = generateRefreshToken(user[0]);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
-    await User.updateRefreshToken(user[0].user_id, refreshToken);
+    await User.updateRefreshToken(user.user_id, refreshToken);
 
     res.status(201).json({
       message: "Вы успешно авторизировались.",
