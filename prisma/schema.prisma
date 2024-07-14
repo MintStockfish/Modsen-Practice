@@ -9,7 +9,7 @@ datasource db {
 
 model meetup_info {
   meetup_id   BigInt  @id @default(autoincrement())
-  name        String
+  name        String  @unique
   tags        String
   date        String
   location    String
@@ -19,8 +19,8 @@ model meetup_info {
 model user_info {
   user_id       BigInt  @id @default(autoincrement())
   username      String? @unique
-  email         String
+  email         String? @unique
   password      String
   refresh_token String?
-  roles         String?
+  roles         String
 }

@@ -10,9 +10,13 @@ const {
   deleteMeetup,
   filterByTags,
   sortByName,
-} = require("../src/meetupControllers");
+} = require("../src/controllers/meetupControllers");
 
-const { register, login, assignAdmin } = require("../src/authControllers");
+const {
+  register,
+  login,
+  assignAdmin,
+} = require("../src/controllers/authControllers");
 
 router.post("/register", register);
 router.post("/login", login);

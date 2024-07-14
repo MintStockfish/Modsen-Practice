@@ -2,10 +2,10 @@
   "name": "modsen-api-practice",
   "version": "1.0.0",
   "description": "Task for my university practice in Modsen.",
-  "main": "index.js",
+  "main": "./src/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node ./src/ndex.js",
+    "dev": "nodemon ./src/index.js"
   },
   "repository": {
     "type": "git",
